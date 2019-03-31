@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Passive Aggressive Camping Simulator</title>
+  </head>
+  <body onload="setup()">
+  <canvas id="gameCanvas" width="640" height="480" style="border:1px solid black;">
+  </canvas>
+  <script>
+	var allChallenges = [
+		{id:"a", desc:"a desc"}, 
+		{id:"b", desc:"b desc"}, 
+		{id:"c", desc:"c desc"}, 
+		{id:"d", desc:"d desc"}, 
+		{id:"e", desc:"e desc"}, 
+		{id:"f", desc:"f desc"}, 
+		{id:"g", desc:"g desc"}
+	];
+	
+	var collisionObjects = [
+	]
+	
+	var playerOne = {xPos: 100, yPos: 100, image: };
+	
+	function setup()
+	{
+		var test = pickSixUniqueChallenges();
+		for (i = 0; i < test.length; i++)
+		{
+			alert(test[i].desc);
+		}
+	}
+	
+	function pickSixUniqueChallenges()
+	{
+		var tempChals = allChallenges.slice();
+		var sixChals = new Array();
+		for (i = 0; i < 6; i++)
+		{	
+			//Get a number between 0 and tempChals length - 1
+			var index = Math.floor(Math.random() * (tempChals.length));
+			//Add that challenge to new array
+			sixChals.push(tempChals[index]);
+			//Remove that challenge from old (temp) array
+			tempChals.splice(index, 1);
+		}
+		return sixChals;
+	}
+  </script>
+  </body>
+</html>

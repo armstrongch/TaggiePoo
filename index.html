@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Taggie Poo</title>
+	  <meta name="author" content="Chris Armstrong">
+	  <meta name="description" content="Two-Player Tag Simulator">
+	  <meta name="keywords" content="HTML,JS,Game,Engine,Indie,Sam,Jam">
+  <style>
+	#canvasContainer {
+		text-align: center;
+		width: 100%;
+	}
+	canvas {
+		border: 1px solid black;
+		display: inline;
+	}
+	table, tr, td {
+		border: 1px solid white;
+	}
+	h1, h2, h3 {
+		margin: 0px;
+	}
+	.slider {
+		width: 100%;
+	}
+  </style>
+  </head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <body onload = "gameStart()">
+	<table>
+		<tr>
+			<td colspan="2"><h1 style="text-align:center">Taggie Poo</h1></td>
+		</tr>
+		<tr>
+			<td style="text-align: center">
+				<h2 style="color: red">Player One</h2>
+				<h3>
+					Controls:</br>
+					Arrow Keys</br>
+					Character:
+				<h3>
+				<select id="selectCharOne" onchange="selectCharacter('One', 'Two')">
+					<option value="elephantImage" selected="selected">Elephant</option>
+					<option value="foxImage" disabled="disabled">Fox</option>
+					<option value="frogImage">Frog</option>
+					<option value="geckoImage">Gecko</option>
+					<option value="giraffeImage">Giraffe</option>
+					<option value="gnomeImage">Gnome</option>
+					<option value="goblinImage">Goblin</option>
+					<option value="helicopterImage">Helicoptor</option>
+					<option value="hydraImage">Hydra</option>
+					<option value="lionImage">Lion</option>
+					<option value="mooseImage">Moose</option>
+					<option value="plantMonsterImage">Plant Monster</option>
+					<option value="spacemanImage">Spaceman</option>
+					<option value="whaleImage">Whale</option>
+					<option value="wizardImage">Wizard</option>
+				</select>
+			</td>
+			<td style="text-align: center">
+				<h2 style="color: blue">Player Two</h2>
+				<h3>
+					Controls:</br>
+					WSAD</br>
+					Character:
+				<h3>
+				<select id="selectCharTwo" onchange="selectCharacter('Two', 'One')">
+					<option value="elephantImage" disabled="disabled">Elephant</option>
+					<option value="foxImage" selected="selected">Fox</option>
+					<option value="frogImage">Frog</option>
+					<option value="geckoImage">Gecko</option>
+					<option value="giraffeImage">Giraffe</option>
+					<option value="gnomeImage">Gnome</option>
+					<option value="goblinImage">Goblin</option>
+					<option value="helicopterImage">Helicoptor</option>
+					<option value="hydraImage">Hydra</option>
+					<option value="lionImage">Lion</option>
+					<option value="mooseImage">Moose</option>
+					<option value="plantMonsterImage">Plant Monster</option>
+					<option value="spacemanImage">Spaceman</option>
+					<option value="whaleImage">Whale</option>
+					<option value="wizardImage">Wizard</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2">
+				<input type="range" min="0" max="100" value="50" class="slider" id="playerOneWinPercentageRange" disabled="true">
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2"><div id='canvasContainer'>
+				<canvas id="roomCanvas" width="640" height="640"></canvas>
+			</div></td>
+		</tr>
+	<table>
+	
+	<script>
+		var t = Date.now();
+		var ms_per_Step = 1000/60;
+		var roomCanvas = document.getElementById("roomCanvas");
+		var context = roomCanvas.getContext("2d");
+		
+		var roomObjects =[]; //List of Objects in the Room	 
+		
+		var player;
+		var playerSpeed = 3;
+		var playerWidth = 32;
+		var playerHeight = 32;
+		var roomWidth = roomCanvas.width;
+		var roomHeight = roomCanvas.height;
+		var playerOneWinPercentage = 0.5;
+		var playerOneWinDifPerLoop = 0.00005;
+		
+		function selectCharacter(playerNumberString, enemyNumberString)
+		{
+			//Disable player's selected character for the other player
+			var id = "#selectChar" + playerNumberString;
+			var playerSelect = $(id);
+			var selectedValue = playerSelect.val();
+			id = "#selectChar" + enemyNumberString + " option[value='" + selectedValue + "']";
+			$(id).attr("disabled", "disabled").siblings().removeAttr("disabled");
+			
+			//Change images of player objects
+			id = $("#selectCharOne").val();
+			roomObjects[playerOneIndex]["image"] = window[id];
+			id = $("#selectCharTwo").val();
+			roomObjects[playerTwoIndex]["image"] = window[id];
+			
+			//focus on canvas, (to prevent switching select with arrows)
+			playerSelect.blur();
+		}
+		
+		function roomObject (xPos, yPos, image)
+		{
+			this.xPos = xPos;
+			this.yPos = yPos;
+			this.speed = 0;
+			this.direction = 0;
+			this.image = image;
+			this.up = false;
+			this.down = false;
+			this.left = false;
+			this.right = false;
+			this.isCurrentlyIt = false;
+		}
+		
+		var testImage = new Image();
+		testImage.src = "images\\Test_32by32.png";
+		
+		var elephantImage = new Image();
+		elephantImage.src = "images\\Elephant_32by32.png";
+		
+		var helicopterImage = new Image();
+		helicopterImage.src = "images\\Helicoptor_32by32.png";
+		
+		var mooseImage = new Image();
+		mooseImage.src = "images\\Moose_32by32.png";
+		
+		var geckoImage = new Image();
+		geckoImage.src = "images\\Gecko_32by32.png";
+		
+		var foxImage = new Image();
+		foxImage.src = "images\\Fox_32by32.png";
+		
+		var frogImage = new Image();
+		frogImage.src = "images\\Frog_32by32.png";
+		
+		var giraffeImage = new Image();
+		giraffeImage.src = "images\\Giraffe_32by32.png";
+		
+		var gnomeImage = new Image();
+		gnomeImage.src = "images\\Gnome_32by32.png";
+		
+		var goblinImage = new Image();
+		goblinImage.src = "images\\Goblin_32by32.png";
+		
+		var hydraImage = new Image();
+		hydraImage.src = "images\\Hydra_32by32.png";
+		
+		var lionImage = new Image();
+		lionImage.src = "images\\Lion_32by32.png";
+		
+		var plantMonsterImage = new Image();
+		plantMonsterImage.src = "images\\PlantMonster_32by32.png";
+		
+		var spacemanImage = new Image();
+		spacemanImage.src = "images\\Spaceman_32by32.png";
+		
+		var whaleImage = new Image();
+		whaleImage.src = "images\\Whale_32by32.png";
+		
+		var wizardImage = new Image();
+		wizardImage.src = "images\\Wizard_32by32.png";
+		
+		function gameStart()
+		{
+			setup();
+			t = Date.now();
+			
+			document.addEventListener("keydown", keyDown);
+			document.addEventListener("keyup", keyUp);
+			
+			setInterval(gameLoop, 10);
+		}
+		
+		function setup()
+		{
+			//Setup Room
+			
+			//Player 0
+			roomObjects.push(new roomObject(32,32, elephantImage, null));
+			playerOneIndex = 0;
+			
+			//Player 1
+			roomObjects.push(new roomObject(roomCanvas.height - 64,roomCanvas.width - 64, foxImage, null));
+			playerTwoIndex = 1;
+			
+			//Test
+			/*for (i = 4; i < roomCanvas.width/32 - 4; i++)
+			{
+				for (j = 4; j < roomCanvas.width/32 - 4; j++)
+				{
+					roomObjects.push(new roomObject(i*32, j*32, elephantImage));
+				}
+			}*/
+			roomObjects[playerOneIndex].isCurrentlyIt = true;
+		}
+		
+		function gameLoop()
+		{
+			//Get time between last and current frame
+			var delta = Date.now() - t;	
+			var d = delta / ms_per_Step;
+			t = Date.now();
+
+			//Clear the Canvas
+			context.clearRect(0, 0, roomCanvas.width, roomCanvas.height);
+			for (i = roomObjects.length - 1; i >= 0; i--)
+			{
+				//Get object from list
+				var o = roomObjects[i];
+				
+				//Move object on canvas
+				var xStep = o.xPos + o.speed * Math.cos(o.direction / 180 * Math.PI) * d;
+				var yStep = o.yPos - o.speed * Math.sin(o.direction / 180 * Math.PI) * d;
+				if ((xStep > 0) && (xStep < roomWidth - playerWidth))
+				{
+					o.xPos = xStep;
+				}
+				if ((yStep > 0) && (yStep < roomHeight - playerHeight))
+				{
+					o.yPos = yStep;
+				}
+				
+				//Draw object on canvas
+				if (o.image != null)
+				{
+					context.drawImage(o.image, o.xPos, o.yPos);
+				}
+			}
+			
+			if (roomObjects[playerOneIndex].isCurrentlyIt && !roomObjects[playerTwoIndex].isCurrentlyIt)
+			{
+				playerOneWinPercentage -= playerOneWinDifPerLoop;
+			}
+			else if (roomObjects[playerTwoIndex].isCurrentlyIt && !roomObjects[playerOneIndex].isCurrentlyIt)
+			{
+				playerOneWinPercentage += playerOneWinDifPerLoop;
+			}
+			$('#playerOneWinPercentageRange').val(Math.round(playerOneWinPercentage*100));
+			$('#playerOneWinPercentageRange').parent().css('opacity','0.5');
+			var color = 'rgb(' + 255*playerOneWinPercentage + ', 0, ' + 255*(1-playerOneWinPercentage) + ')'; 
+			$('#playerOneWinPercentageRange').parent().css('background-color', color);
+			
+		}
+		
+		function keyDown(e)
+		{
+			var k = e.keyCode;
+			switch (k) {
+				case 38: //up
+					updatePlayerMove(playerOneIndex, "up", true);
+					break;
+				
+				case 40: //down
+					updatePlayerMove(playerOneIndex, "down", true);
+					break;
+					
+				case 37: //left
+					updatePlayerMove(playerOneIndex, "left", true);
+					break;
+					
+				case 39: //right
+					updatePlayerMove(playerOneIndex, "right", true);
+					break;
+				case 87: //W
+					updatePlayerMove(playerTwoIndex, "up", true);
+					break;
+				
+				case 83: //S
+					updatePlayerMove(playerTwoIndex, "down", true);
+					break;
+					
+				case 65: //A
+					updatePlayerMove(playerTwoIndex, "left", true);
+					break;
+					
+				case 68: //D
+					updatePlayerMove(playerTwoIndex, "right", true);
+					break;
+			}
+		}
+		
+		function keyUp(e)
+		{
+			var k = e.keyCode;
+			switch (k) 
+			{
+				case 38: //up
+					updatePlayerMove(playerOneIndex, "up", false);
+					break;
+				
+				case 40: //down
+					updatePlayerMove(playerOneIndex, "down", false);
+					break;
+					
+				case 37: //left
+					updatePlayerMove(playerOneIndex, "left", false);
+					break;
+					
+				case 39: //right
+					updatePlayerMove(playerOneIndex, "right", false);
+					break;
+				case 87: //W
+					updatePlayerMove(playerTwoIndex, "up", false);
+					break;
+				
+				case 83: //S
+					updatePlayerMove(playerTwoIndex, "down", false);
+					break;
+					
+				case 65: //A
+					updatePlayerMove(playerTwoIndex, "left", false);
+					break;
+					
+				case 68: //D
+					updatePlayerMove(playerTwoIndex, "right", false);
+					break;
+			}	
+		}
+		
+		function updatePlayerMove(playerNumber, direction, TF)
+		{
+			roomObjects[playerNumber][direction] = TF;
+			
+			var hspeed = 0;
+			var vspeed = 0;
+			if (roomObjects[playerNumber]["up"])
+			{
+				vspeed = -1;
+			}
+			else if (roomObjects[playerNumber]["down"])
+			{
+				vspeed = 1;
+			}
+			if (roomObjects[playerNumber]["right"])
+			{
+				hspeed = 1;
+			}
+			else if (roomObjects[playerNumber]["left"])
+			{
+				hspeed = -1;
+			}
+			if ((vspeed == 0) && (hspeed == 0))
+			{
+				roomObjects[playerNumber].speed = 0;
+			}
+			else
+			{
+				roomObjects[playerNumber].speed = playerSpeed;
+			}
+			var rad = Math.atan2(-vspeed, hspeed);
+			roomObjects[playerNumber].direction = rad * (180 / Math.PI);
+		}
+	</script>
+  </body>
+</html>
