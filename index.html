@@ -144,6 +144,7 @@
 			this.left = false;
 			this.right = false;
 			this.isCurrentlyIt = false;
+			this.deleteNextLoop = false;
 		}
 		
 		var testImage = new Image();
@@ -194,6 +195,15 @@
 		var wizardImage = new Image();
 		wizardImage.src = "images\\Wizard_32by32.png";
 		
+		var pineappleImage = new Image();
+		pineappleImage.src = "images\\Pineapple_32by32.png";
+		
+		var itImage = new Image();
+		itImage.src = "images\\It_32by32.png";
+		
+		var noTagBackTimer = 0;
+		var maxNoTagBackTimer = 60;
+		
 		function gameStart()
 		{
 			setup();
@@ -210,12 +220,17 @@
 			//Setup Room
 			
 			//Player 0
-			roomObjects.push(new roomObject(32,32, elephantImage, null));
+			roomObjects.push(new roomObject(32, 32, elephantImage));
 			playerOneIndex = 0;
 			
 			//Player 1
-			roomObjects.push(new roomObject(roomCanvas.height - 64,roomCanvas.width - 64, foxImage, null));
+			roomObjects.push(new roomObject(roomCanvas.height - 64, roomCanvas.width - 64, foxImage));
 			playerTwoIndex = 1;
+			
+			//Pineapple
+			roomObjects.push(new roomObject(roomCanvas.height/2 - 16, roomCanvas.width/2 - 16, pineappleImage));
+			pineappleIndex = 2;
+			roomObjects[pineappleIndex].IsCurrentlyIt = true;
 			
 			//Test
 			/*for (i = 4; i < roomCanvas.width/32 - 4; i++)
@@ -225,7 +240,6 @@
 					roomObjects.push(new roomObject(i*32, j*32, elephantImage));
 				}
 			}*/
-			roomObjects[playerOneIndex].isCurrentlyIt = true;
 		}
 		
 		function gameLoop()
@@ -242,22 +256,60 @@
 				//Get object from list
 				var o = roomObjects[i];
 				
-				//Move object on canvas
-				var xStep = o.xPos + o.speed * Math.cos(o.direction / 180 * Math.PI) * d;
-				var yStep = o.yPos - o.speed * Math.sin(o.direction / 180 * Math.PI) * d;
-				if ((xStep > 0) && (xStep < roomWidth - playerWidth))
+				if (o.deleteNextLoop)
 				{
-					o.xPos = xStep;
+					roomObjects.splice(i, 1);
 				}
-				if ((yStep > 0) && (yStep < roomHeight - playerHeight))
+				else
 				{
-					o.yPos = yStep;
-				}
-				
-				//Draw object on canvas
-				if (o.image != null)
-				{
-					context.drawImage(o.image, o.xPos, o.yPos);
+					//Move object on canvas
+					var xStep = o.xPos + o.speed * Math.cos(o.direction / 180 * Math.PI) * d;
+					var yStep = o.yPos - o.speed * Math.sin(o.direction / 180 * Math.PI) * d;
+					if ((xStep > 0) && (xStep < roomWidth - playerWidth))
+					{
+						o.xPos = xStep;
+					}
+					if ((yStep > 0) && (yStep < roomHeight - playerHeight))
+					{
+						o.yPos = yStep;
+					}
+					
+					//Draw object on canvas
+					if (o.image != null)
+					{
+						context.drawImage(o.image, o.xPos, o.yPos);
+					}
+					if (o.isCurrentlyIt)
+					{
+						context.drawImage(itImage, o.xPos, o.yPos);
+						if ((i == playerOneIndex) && (noTagBackTimer <= 0) && (circleCollision(i, playerTwoIndex)))
+						{
+							o.isCurrentlyIt = false;
+							roomObjects[playerTwoIndex].isCurrentlyIt = true;
+							noTagBackTimer = maxNoTagBackTimer;
+						}
+						else if ((i == playerTwoIndex) && (noTagBackTimer <= 0) && (circleCollision(i, playerOneIndex)))
+						{
+							o.isCurrentlyIt = false;
+							roomObjects[playerOneIndex].isCurrentlyIt = true;
+							noTagBackTimer = maxNoTagBackTimer;
+						}
+					}
+					//Check to see if Pineapple was picked up
+					if (i == pineappleIndex)
+					{
+						if (circleCollision(i, playerOneIndex))
+						{
+							roomObjects[playerTwoIndex].isCurrentlyIt = true;
+							o.deleteNextLoop = true;
+							
+						}
+						else if (circleCollision(i, playerTwoIndex))
+						{
+							roomObjects[playerOneIndex].isCurrentlyIt = true;
+							o.deleteNextLoop = true;
+						}
+					}
 				}
 			}
 			
@@ -274,6 +326,29 @@
 			var color = 'rgb(' + 255*playerOneWinPercentage + ', 0, ' + 255*(1-playerOneWinPercentage) + ')'; 
 			$('#playerOneWinPercentageRange').parent().css('background-color', color);
 			
+			if (noTagBackTimer >= 0)
+			{
+				noTagBackTimer -= d;
+			}
+		}
+		
+		function circleCollision(selfIndex, otherIndex)
+		{
+			var selfObj = roomObjects[selfIndex];
+			var otherObj = roomObjects[otherIndex];
+			if (pointDistance(selfObj.xPos, selfObj.yPos, otherObj.xPos, otherObj.yPos) <= 32)
+			{
+				return true;
+			}
+			else 
+			{
+				return false;
+			}
+		}
+		
+		function pointDistance(x1, y1, x2, y2)
+		{
+			return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
 		}
 		
 		function keyDown(e)
